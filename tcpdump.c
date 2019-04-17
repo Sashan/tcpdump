@@ -165,8 +165,8 @@ static int WflagChars;
 static char *zflag = NULL;		/* compress each savefile using a specified command (like gzip or bzip2) */
 static int immediate_mode;
 
-static int infodelay;
 static int infoprint;
+static int gotalarm;
 
 char *program_name;
 
@@ -1962,6 +1962,8 @@ main(int argc, char **argv)
 #elif defined(HAVE_ALARM)
 		(void)setsignal(SIGALRM, verbose_stats_dump);
 		alarm(1);
+		/* signal alarm to get the first iteration ASAP */
+		gotalarm = 1;
 #endif
 	}
 
@@ -2274,8 +2276,6 @@ dump_packet_and_trunc(u_char *user, const struct pcap_pkthdr *h, const u_char *s
 
 	++packets_captured;
 
-	++infodelay;
-
 	dump_info = (struct dump_info *)user;
 
 	/*
@@ -2464,9 +2464,16 @@ dump_packet_and_trunc(u_char *user, const struct pcap_pkthdr *h, const u_char *s
 		pcap_dump_flush(dump_info->p);
 #endif
 
-	--infodelay;
-	if (infoprint)
+	if (infoprint) {
 		info(0);
+		infoprint = 0;
+	}
+
+	if (gotalarm) {
+		fprintf(stderr, "Got %u\r", packets_captured);
+		gotalarm = 0;
+		alarm(1);
+	}
 }
 
 static void
@@ -2474,17 +2481,22 @@ dump_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 {
 	++packets_captured;
 
-	++infodelay;
-
 	pcap_dump(user, h, sp);
 #ifdef HAVE_PCAP_DUMP_FLUSH
 	if (Uflag)
 		pcap_dump_flush((pcap_dumper_t *)user);
 #endif
 
-	--infodelay;
-	if (infoprint)
+	if (infoprint) {
 		info(0);
+		infoprint = 0;
+	}
+
+	if (gotalarm) {
+		fprintf(stderr, "Got %u\r", packets_captured);
+		gotalarm = 0;
+		alarm(1);
+	}
 }
 
 static void
@@ -2492,13 +2504,12 @@ print_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 {
 	++packets_captured;
 
-	++infodelay;
-
 	pretty_print_packet((netdissect_options *)user, h, sp, packets_captured);
 
-	--infodelay;
-	if (infoprint)
+	if (infoprint) {
 		info(0);
+		infoprint = 0;
+	}
 }
 
 #ifdef _WIN32
@@ -2531,10 +2542,7 @@ print_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 #ifdef SIGNAL_REQ_INFO
 RETSIGTYPE requestinfo(int signo _U_)
 {
-	if (infodelay)
-		++infoprint;
-	else
-		info(0);
+	infoprint = 1;
 }
 #endif
 
@@ -2545,15 +2553,12 @@ RETSIGTYPE requestinfo(int signo _U_)
 void CALLBACK verbose_stats_dump (UINT timer_id _U_, UINT msg _U_, DWORD_PTR arg _U_,
 				  DWORD_PTR dw1 _U_, DWORD_PTR dw2 _U_)
 {
-	if (infodelay == 0)
-		fprintf(stderr, "Got %u\r", packets_captured);
+	gotalarm = 1;
 }
 #elif defined(HAVE_ALARM)
 static void verbose_stats_dump(int sig _U_)
 {
-	if (infodelay == 0)
-		fprintf(stderr, "Got %u\r", packets_captured);
-	alarm(1);
+	gotalarm = 1;
 }
 #endif
 
