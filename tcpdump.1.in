@@ -20,7 +20,7 @@
 .\" WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
 .\" MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 .\"
-.TH TCPDUMP 1  "2 February 2017"
+.TH TCPDUMP 8  "2 February 2017"
 .SH NAME
 tcpdump \- dump traffic on a network
 .SH SYNOPSIS
@@ -393,7 +393,7 @@ On Linux systems with 2.2 or later kernels, an
 .I interface
 argument of ``any'' can be used to capture packets from all interfaces.
 Note that captures on the ``any'' device will not be done in promiscuous
-mode.
+mode. Currently, Solaris supports the ``any'' interface argument as well.
 .IP
 If the
 .B \-D
@@ -1878,7 +1878,7 @@ The `*' on the request
 indicates that XO (`exactly once') was \fInot\fP set.
 
 .SH "SEE ALSO"
-stty(1), pcap(3PCAP), bpf(4), nit(4P), pcap-savefile(@MAN_FILE_FORMATS@),
+stty(1), pcap(3PCAP), bpf(4d), nit(4P), pcap-savefile(@MAN_FILE_FORMATS@),
 pcap-filter(@MAN_MISC_INFO@), pcap-tstamp(@MAN_MISC_INFO@)
 .LP
 .RS
